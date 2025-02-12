@@ -1,0 +1,36 @@
+services:
+  kafka:
+    image: bitnami/kafka:latest
+    environment:
+      # Режим KRaft – Kafka работает без Zookeeper
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_KRAFT_CLUSTER_ID=1
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    ports:
+      - "9092:9092"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+    ports:
+      - "8080:8080"
+
+  # Если хотите контейнеризовать и ваше Go-приложение,
+  # добавьте его в docker-compose. Важно: внутри контейнера адрес Kafka – "kafka:9092"
+  app:
+    build: .
+    depends_on:
+      - kafka
+    # Можно передавать адрес брокера через переменную окружения,
+    # а в коде читать её (например, os.Getenv("KAFKA_BROKER"))
+    environment:
+      - KAFKA_BROKER=kafka:9092
